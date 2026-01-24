@@ -1,20 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <IsPackable>true</IsPackable>   
-    <!-- Required identity -->
-    <PackageId>Kothf.Data</PackageId>
-    <Version>2.10.0</Version>
-    <Authors>Kothf</Authors>
-    <Description>A small ADO.NET helper library that provides a lightweight Database object and a SqlHelper ultility.</Description>
-    <!-- Strongly recommended -->
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/ORG/REPO</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/ORG/REPO</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>SqlHelper;ADO.NET helper library</PackageTags>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
+    <PropertyGroup>
+        <TargetFrameworks>net10.0;net8.0</TargetFrameworks>
+	    <!-- NuGet package -->
+	    <IsPackable>true</IsPackable>   
+        <!-- Required identity -->
+        <PackageId>Kothf.Data</PackageId>
+        <Version>2.10.1</Version>
+        <Authors>Kothf</Authors>
+        <Description>A small ADO.NET helper library that provides a lightweight Database object and a SqlHelper ultility.</Description>
+        <!-- Strongly recommended -->
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/kothoifung/Kothf.Data.git</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/kothoifung/Kothf.Data.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageTags>SqlHelper;ADO.NET</PackageTags>
+    </PropertyGroup>
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
 </Project>

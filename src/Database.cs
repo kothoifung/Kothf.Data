@@ -122,6 +122,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     public void BeginTransaction(IsolationLevel isolationLevel)
     {
         ThrowIfTransactionOrConnectionInProgress();
+
         GetOrCreateConnection();
         _connection!.Open();
         _transaction = _connection!.BeginTransaction(isolationLevel);
@@ -134,6 +135,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     public async Task BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken)
     {
         ThrowIfTransactionOrConnectionInProgress();
+
         GetOrCreateConnection();
         await _connection!.OpenAsync(cancellationToken);
         _transaction = await _connection.BeginTransactionAsync(isolationLevel, cancellationToken);
@@ -237,8 +239,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public void Dispose()
     {
-        if (_disposed)
-            return;
+        if (_disposed) { return; }
 
         _transaction?.Dispose();
         _transaction = null;
@@ -255,8 +256,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (_disposed)
-            return;
+        if (_disposed) { return; }
 
         if (_transaction != null)
         {

@@ -4,6 +4,7 @@
 
 using System.Data.Common;
 using System.Runtime.CompilerServices;
+
 #if NET9_0_OR_GREATER
 using System.Threading;
 #endif

@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/Kothf.Data.csproj" />
+  <Project Path="tests/Kothf.Data.Tests.csproj" />
+</Solution>

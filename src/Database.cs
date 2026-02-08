@@ -52,7 +52,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     public async Task<DataTable> ExecuteDataTableAsync(CommandType commandType, string commandText, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
     {
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
-        return await SqlHelper.ExecuteDataTableAsync(command, cancellationToken);
+        return await SqlHelper.ExecuteDataTableAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -72,7 +72,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     public async Task<int> ExecuteNonQueryAsync(CommandType commandType, string commandText, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
     {
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
-        return await SqlHelper.ExecuteNonQueryAsync(command, cancellationToken);
+        return await SqlHelper.ExecuteNonQueryAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -92,7 +92,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     public async Task<DbDataReader> ExecuteReaderAsync(CommandType commandType, string commandText, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
     {
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
-        return await SqlHelper.ExecuteReaderAsync(command, cancellationToken);
+        return await SqlHelper.ExecuteReaderAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -112,7 +112,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     public async Task<object?> ExecuteScalarAsync(CommandType commandType, string commandText, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
     {
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
-        return await SqlHelper.ExecuteScalarAsync(command, cancellationToken);
+        return await SqlHelper.ExecuteScalarAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -137,8 +137,8 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
         ThrowIfTransactionOrConnectionInProgress();
 
         GetOrCreateConnection();
-        await _connection!.OpenAsync(cancellationToken);
-        _transaction = await _connection.BeginTransactionAsync(isolationLevel, cancellationToken);
+        await _connection!.OpenAsync(cancellationToken).ConfigureAwait(false);
+        _transaction = await _connection.BeginTransactionAsync(isolationLevel, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -159,8 +159,8 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     public async Task CommitAsync(CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(_transaction);
-        await _transaction.CommitAsync(cancellationToken);
-        await CleanupTransactionAsync();
+        await _transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        await CleanupTransactionAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -181,8 +181,8 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     public async Task RollbackAsync(CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(_transaction);
-        await _transaction.RollbackAsync(cancellationToken);
-        await CleanupTransactionAsync();
+        await _transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+        await CleanupTransactionAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -216,7 +216,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     {
         if (_transaction != null)
         {
-            await _transaction.DisposeAsync();
+            await _transaction.DisposeAsync().ConfigureAwait(false);
             _transaction = null;
         }
     }
@@ -233,13 +233,14 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
             throw new InvalidOperationException("Connection is in progress.");
     }
 
-    #region Disposable Pattern
+    #region IDisposable & AsyncDisposable Implementation
     /// <summary>
     /// Releases the resources used by this instance.
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) { return; }
+        if (_disposed)
+        { return; }
 
         _transaction?.Dispose();
         _transaction = null;
@@ -256,17 +257,18 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (_disposed) { return; }
+        if (_disposed)
+        { return; }
 
         if (_transaction != null)
         {
-            await _transaction.DisposeAsync();
+            await _transaction.DisposeAsync().ConfigureAwait(false);
             _transaction = null;
         }
 
         if (_connection != null)
         {
-            await _connection.DisposeAsync();
+            await _connection.DisposeAsync().ConfigureAwait(false);
             _connection = null;
         }
 

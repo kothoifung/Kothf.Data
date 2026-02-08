@@ -20,7 +20,8 @@ public static class SqlHelper
     /// <remarks>Using either the connection associated with the provided transaction or the provided connection</remarks>
     public static DbCommand CreateCommand(DbConnection? connection, DbTransaction? transaction, CommandType commandType, string commandText, DbParameter[]? commandParameters = null)
     {
-        var command = (transaction?.Connection ?? connection)?.CreateCommand() ?? throw new InvalidOperationException("Failed to create the command.");
+        var command = (transaction?.Connection ?? connection)?.CreateCommand()
+            ?? throw new InvalidOperationException("Failed to create the command.");
 
         command.CommandText = commandText;
         command.CommandType = commandType;
@@ -43,7 +44,9 @@ public static class SqlHelper
     /// </summary>
     public static DbConnection CreateConnection(string connectionString, string providerInvariantName)
     {
-        var connection = DbProviderFactoryCache.GetFactory(providerInvariantName).CreateConnection() ?? throw new InvalidOperationException("Failed to create the connection according to the specified provider.");
+        var connection = DbProviderFactoryCache.GetFactory(providerInvariantName).CreateConnection()
+            ?? throw new InvalidOperationException("Failed to create the connection according to the specified provider.");
+
         connection.ConnectionString = connectionString;
         return connection;
     }
@@ -53,9 +56,12 @@ public static class SqlHelper
     /// </summary>
     public static DbConnection CreateConnectionAndOpen(string connectionString, string providerInvariantName)
     {
-        var connection = DbProviderFactoryCache.GetFactory(providerInvariantName).CreateConnection() ?? throw new InvalidOperationException("Failed to create the connection according to the specified provider.");
+        var connection = DbProviderFactoryCache.GetFactory(providerInvariantName).CreateConnection()
+            ?? throw new InvalidOperationException("Failed to create the connection according to the specified provider.");
+
         connection.ConnectionString = connectionString;
         connection.Open();
+
         return connection;
     }
 
@@ -64,9 +70,12 @@ public static class SqlHelper
     /// </summary>
     public static async Task<DbConnection> CreateConnectionAndOpenAsync(string connectionString, string providerInvariantName, CancellationToken cancellationToken = default)
     {
-        var connection = DbProviderFactoryCache.GetFactory(providerInvariantName).CreateConnection() ?? throw new InvalidOperationException("Failed to create the connection according to the specified provider.");
+        var connection = DbProviderFactoryCache.GetFactory(providerInvariantName).CreateConnection()
+            ?? throw new InvalidOperationException("Failed to create the connection according to the specified provider.");
+
         connection.ConnectionString = connectionString;
-        await connection.OpenAsync(cancellationToken);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
         return connection;
     }
 
@@ -75,7 +84,8 @@ public static class SqlHelper
     /// </summary>
     public static DbParameter CreateParameter<T>(string providerInvariantName, string parameterName, DbType type, T? value = default)
     {
-        var parameter = DbProviderFactoryCache.GetFactory(providerInvariantName).CreateParameter() ?? throw new InvalidOperationException("Failed to create the parameter according to the specified provider.");
+        var parameter = DbProviderFactoryCache.GetFactory(providerInvariantName).CreateParameter()
+            ?? throw new InvalidOperationException("Failed to create the parameter according to the specified provider.");
 
         parameter.ParameterName = parameterName;
         parameter.DbType = type;
@@ -107,7 +117,7 @@ public static class SqlHelper
     {
         var dt = new DataTable();
 
-        await using var reader = await ExecuteReaderAsync(command, cancellationToken);
+        await using var reader = await ExecuteReaderAsync(command, cancellationToken).ConfigureAwait(false);
 
         dt.BeginLoadData();
         dt.Load(reader, LoadOption.OverwriteChanges);
@@ -125,12 +135,12 @@ public static class SqlHelper
 
         try
         {
-            shouldClose = TryOpenConnection(command.Connection!);
+            shouldClose = TryOpenConnection(command.Connection);
             return command.ExecuteNonQuery();
         }
         finally
         {
-            TryCloseConnection(command.Connection!, shouldClose);
+            TryCloseConnection(command.Connection, shouldClose);
         }
     }
 
@@ -143,12 +153,12 @@ public static class SqlHelper
 
         try
         {
-            shouldClose = await TryOpenConnectionAsync(command.Connection!, cancellationToken);
-            return await command.ExecuteNonQueryAsync(cancellationToken);
+            shouldClose = await TryOpenConnectionAsync(command.Connection, cancellationToken).ConfigureAwait(false);
+            return await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            await TryCloseConnectionAsync(command.Connection!, shouldClose);
+            await TryCloseConnectionAsync(command.Connection, shouldClose).ConfigureAwait(false);
         }
     }
 
@@ -162,12 +172,12 @@ public static class SqlHelper
 
         try
         {
-            shouldClose = TryOpenConnection(command.Connection!);
+            shouldClose = TryOpenConnection(command.Connection);
             return command.ExecuteReader(shouldClose ? CommandBehavior.CloseConnection : CommandBehavior.Default);
         }
         catch (Exception)
         {
-            TryCloseConnection(command.Connection!, shouldClose);
+            TryCloseConnection(command.Connection, shouldClose);
             throw;
         }
     }
@@ -182,12 +192,12 @@ public static class SqlHelper
 
         try
         {
-            shouldClose = await TryOpenConnectionAsync(command.Connection!, cancellationToken);
-            return await command.ExecuteReaderAsync(shouldClose ? CommandBehavior.CloseConnection : CommandBehavior.Default, cancellationToken);
+            shouldClose = await TryOpenConnectionAsync(command.Connection, cancellationToken).ConfigureAwait(false);
+            return await command.ExecuteReaderAsync(shouldClose ? CommandBehavior.CloseConnection : CommandBehavior.Default, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception)
         {
-            await TryCloseConnectionAsync(command.Connection!, shouldClose);
+            await TryCloseConnectionAsync(command.Connection, shouldClose).ConfigureAwait(false);
             throw;
         }
     }
@@ -219,12 +229,12 @@ public static class SqlHelper
 
         try
         {
-            shouldClose = await TryOpenConnectionAsync(command.Connection, cancellationToken);
-            return await command.ExecuteScalarAsync(cancellationToken);
+            shouldClose = await TryOpenConnectionAsync(command.Connection, cancellationToken).ConfigureAwait(false);
+            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            await TryCloseConnectionAsync(command.Connection, shouldClose);
+            await TryCloseConnectionAsync(command.Connection, shouldClose).ConfigureAwait(false);
         }
     }
 
@@ -284,12 +294,12 @@ public static class SqlHelper
 
         if (connection.State == ConnectionState.Broken)
         {
-            await connection.CloseAsync();
+            await connection.CloseAsync().ConfigureAwait(false);
         }
 
         if (connection.State == ConnectionState.Closed)
         {
-            await connection.OpenAsync(cancellationToken);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
 
@@ -318,7 +328,7 @@ public static class SqlHelper
         if (shouldClose &&
             connection != null && connection.State != ConnectionState.Closed)
         {
-            await connection.CloseAsync();
+            await connection.CloseAsync().ConfigureAwait(false);
         }
     }
 }

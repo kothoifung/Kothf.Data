@@ -51,7 +51,7 @@ internal sealed class TestsWorker : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception occurred during testing!\n{exception}", ex.ToString());
+            _logger.LogError(ex, "Exception occurred during testing!\n{exception}", ex.ToString());
             await Task.Delay(3000, stoppingToken);
         }
     }

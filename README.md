@@ -1,6 +1,6 @@
 # Kothf.Data
 
-Kothf.Data is a small ADO.NET helper library that provides a lightweight `Database` abstraction, an `IDatabase` interface, and a `SqlHelper` utility for creating connections, commands, and parameters.
+A lightweight ADO.NET helper library that provides a `Database` object, and a `SqlHelper` utility.
 
 ## Usage
 
@@ -20,9 +20,9 @@ public async Task ExecuteTransactionAsync(CancellationToken stoppingToken)
 
         DbParameter[] parameters2 = [
             _database.CreateParameter("@p21", DbType.String, "usr001"),
-            _database.CreateParameter("@p22", DbType.String, "Tom"),
+            _database.CreateParameter("@p22", DbType.String, "James"),
             _database.CreateParameter("@p23", DbType.String, "W3Rb3AoWjXs="),
-            _database.CreateParameter("@p24", DbType.String, "tom@gmail.com"),
+            _database.CreateParameter("@p24", DbType.String, "James.Bond@gmail.com"),
             _database.CreateParameter("@p25", DbType.String, "18618618666")
         ];
         string sql2 = $$"""
@@ -33,14 +33,13 @@ public async Task ExecuteTransactionAsync(CancellationToken stoppingToken)
         try
         {
             int affectedRows;
+            
             await _database.BeginTransactionAsync(cancellationToken: stoppingToken);
-            _logger.LogInformation("Starts to execute sql1");
+            _logger.LogInformation("Starts to execute sql1: Removing user");
             affectedRows = await _database.ExecuteNonQueryAsync(CommandType.Text, sql1, parameters1, stoppingToken);
-            _logger.LogInformation("Removing User successfully. User code: {userCode}, affected records: {count}", "usr001", affectedRows);
 
-            _logger.LogInformation("Starts to execute sql2");
+            _logger.LogInformation("Starts to execute sql2: Adding User");
             affectedRows = await _database.ExecuteNonQueryAsync(CommandType.Text, sql2, parameters2, stoppingToken);
-            _logger.LogInformation("Adding User successfully. User code: {userCode}, affected records: {count}", "usr001", affectedRows);
 
             await _database.CommitAsync(stoppingToken);
         }
@@ -52,7 +51,7 @@ public async Task ExecuteTransactionAsync(CancellationToken stoppingToken)
     }
     catch (Exception ex)
     {
-        _logger.LogError("Unhandled exception occurred during testing:\n{exception}", ex.ToString());
+        _logger.LogError("Exception occurred during testing:\n{exception}", ex.ToString());
     }
 
     _logger.LogInformation("Finished Testing `ExecuteTransactionAsync`");
@@ -75,9 +74,9 @@ public async Task ExecuteTransactionAsync(CancellationToken stoppingToken)
 
         DbParameter[] parameters2 = [
             SqlHelper.CreateParameter(ProviderInvariantName, "@p21", DbType.String, "usr001"),
-            SqlHelper.CreateParameter(ProviderInvariantName, "@p22", DbType.String, "Tom"),
+            SqlHelper.CreateParameter(ProviderInvariantName, "@p22", DbType.String, "James"),
             SqlHelper.CreateParameter(ProviderInvariantName, "@p23", DbType.String, "W3Rb3AoWjXs="),
-            SqlHelper.CreateParameter(ProviderInvariantName, "@p24", DbType.String, "tom@gmail.com"),
+            SqlHelper.CreateParameter(ProviderInvariantName, "@p24", DbType.String, "James.Bond@gmail.com"),
             SqlHelper.CreateParameter(ProviderInvariantName, "@p25", DbType.String, "18618618666")
         ];
         string sql2 = $$"""
@@ -91,15 +90,13 @@ public async Task ExecuteTransactionAsync(CancellationToken stoppingToken)
 
         try
         {
-            _logger.LogInformation("Start to execute sql1");
+            _logger.LogInformation("Start to execute sql1: Removing user");
             using var command = SqlHelper.CreateCommand(null, transaction, CommandType.Text, sql1, parameters1);
             affectedRows = await SqlHelper.ExecuteNonQueryAsync(command, stoppingToken);
-            _logger.LogInformation("Removing User successfully. User code: {userCode}, affected records: {count}", "usr001", affectedRows);
 
-            _logger.LogInformation("Start to execute sql2");
+            _logger.LogInformation("Start to execute sql2: Adding user");
             _ = SqlHelper.ReuseCommand(command, CommandType.Text, sql2, parameters2);
             affectedRows = await SqlHelper.ExecuteNonQueryAsync(command, stoppingToken);
-            _logger.LogInformation("Adding User successfully. User code: {userCode}, affected records: {count}", "usr001", affectedRows);
 
             await transaction.CommitAsync(stoppingToken);
         }
@@ -111,7 +108,7 @@ public async Task ExecuteTransactionAsync(CancellationToken stoppingToken)
     }
     catch (Exception ex)
     {
-        _logger.LogError("Unhandled exception occurred during testing:\n{exception}", ex.ToString());
+        _logger.LogError("Exception occurred during testing:\n{exception}", ex.ToString());
     }
 
     _logger.LogInformation("Finished Testing `ExecuteTransactionAsync`");

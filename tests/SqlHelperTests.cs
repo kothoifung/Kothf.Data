@@ -32,9 +32,10 @@ internal sealed class SqlHelperTests
         try
         {
             List<User> modelList = [];
+            int state = 1;
 
             DbParameter[] parameters = [
-                SqlHelper.CreateParameter(ProviderInvariantName, "@p1", DbType.Int32, 1)
+                SqlHelper.CreateParameter(ProviderInvariantName, "@p1", DbType.Int32, state)
             ];
 
             string sql = $$"""
@@ -53,9 +54,7 @@ internal sealed class SqlHelperTests
                 modelList.Add(reader.MapToUser());
             }
 
-            _logger.LogInformation("Reading TMS_APIINFO successfully. API_CODE: {apiCode}, Total matching records: {count}", "System", modelList.Count);
-
-            _logger.LogInformation("Reading User successfully. State: {state}, Total matching records: {count}", 1, modelList.Count);
+            _logger.LogInformation("Reading User successfully. State: {state}, Total matching records: {count}", state, modelList.Count);
 
             foreach (var model in modelList)
             {
@@ -64,7 +63,7 @@ internal sealed class SqlHelperTests
         }
         catch (Exception ex)
         {
-            _logger.LogError("Unhandled exception occurred during testing:\n{exception}", ex.ToString());
+            _logger.LogError("Exception occurred during testing:\n{exception}", ex.ToString());
         }
 
         _logger.LogInformation("Finished Testing `ExecuteReaderAsync`");
@@ -86,7 +85,7 @@ internal sealed class SqlHelperTests
         }
         catch (Exception ex)
         {
-            _logger.LogError("Unhandled exception occurred during testing:\n{exception}", ex.ToString());
+            _logger.LogError("Exception occurred during testing:\n{exception}", ex.ToString());
         }
 
         _logger.LogInformation("Finished Testing `ExecuteScalarAsync`");
@@ -98,16 +97,17 @@ internal sealed class SqlHelperTests
 
         try
         {
+            string userCode = "usr001";
             DbParameter[] parameters1 = [
-                SqlHelper.CreateParameter(ProviderInvariantName, "@p11", DbType.String, "usr001")
+                SqlHelper.CreateParameter(ProviderInvariantName, "@p11", DbType.String, userCode)
             ];
             string sql1 = "DELETE FROM [User] WHERE UserCode = @p11;";
 
             DbParameter[] parameters2 = [
-                SqlHelper.CreateParameter(ProviderInvariantName, "@p21", DbType.String, "usr001"),
-                SqlHelper.CreateParameter(ProviderInvariantName, "@p22", DbType.String, "Tom"),
+                SqlHelper.CreateParameter(ProviderInvariantName, "@p21", DbType.String, userCode),
+                SqlHelper.CreateParameter(ProviderInvariantName, "@p22", DbType.String, "James"),
                 SqlHelper.CreateParameter(ProviderInvariantName, "@p23", DbType.String, "W3Rb3AoWjXs="),
-                SqlHelper.CreateParameter(ProviderInvariantName, "@p24", DbType.String, "tom@gmail.com"),
+                SqlHelper.CreateParameter(ProviderInvariantName, "@p24", DbType.String, "James.Bond@gmail.com"),
                 SqlHelper.CreateParameter(ProviderInvariantName, "@p25", DbType.String, "18618618666")
             ];
             string sql2 = $$"""
@@ -121,15 +121,13 @@ internal sealed class SqlHelperTests
 
             try
             {
-                _logger.LogInformation("Start to execute sql1");
+                _logger.LogInformation("Starts to execute sql1: Removing user");
                 using var command = SqlHelper.CreateCommand(null, transaction, CommandType.Text, sql1, parameters1);
                 affectedRows = await SqlHelper.ExecuteNonQueryAsync(command, stoppingToken);
-                _logger.LogInformation("Removing User successfully. User code: {userCode}, affected records: {count}", "usr001", affectedRows);
 
-                _logger.LogInformation("Start to execute sql2");
+                _logger.LogInformation("Starts to execute sql2: Adding user");
                 _ = SqlHelper.ReuseCommand(command, CommandType.Text, sql2, parameters2);
                 affectedRows = await SqlHelper.ExecuteNonQueryAsync(command, stoppingToken);
-                _logger.LogInformation("Adding User successfully. User code: {userCode}, affected records: {count}", "usr001", affectedRows);
 
                 await transaction.CommitAsync(stoppingToken);
             }
@@ -141,7 +139,7 @@ internal sealed class SqlHelperTests
         }
         catch (Exception ex)
         {
-            _logger.LogError("Unhandled exception occurred during testing:\n{exception}", ex.ToString());
+            _logger.LogError("Exception occurred during testing:\n{exception}", ex.ToString());
         }
 
         _logger.LogInformation("Finished Testing `ExecuteTransactionAsync`");

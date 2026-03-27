@@ -5,9 +5,9 @@
 	    <IsPackable>true</IsPackable>   
         <!-- Required identity -->
         <PackageId>Kothf.Data</PackageId>
-        <Version>2.10.1</Version>
+        <Version>2.10.3</Version>
         <Authors>Kothf</Authors>
-        <Description>A small ADO.NET helper library that provides a lightweight Database object and a SqlHelper ultility.</Description>
+        <Description>A lightweight ADO.NET helper library that provides a `Database` object, and a `SqlHelper` utility.</Description>
         <!-- Strongly recommended -->
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/kothoifung/Kothf.Data.git</PackageProjectUrl>

@@ -239,8 +239,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public void Dispose()
     {
-        if (_disposed)
-        { return; }
+        if (_disposed) { return; }
 
         _transaction?.Dispose();
         _transaction = null;
@@ -257,8 +256,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (_disposed)
-        { return; }
+        if (_disposed) { return; }
 
         if (_transaction != null)
         {

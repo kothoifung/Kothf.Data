@@ -22,16 +22,17 @@ internal class Program
         {
             var builder = Host.CreateEmptyApplicationBuilder(new() { Args = args });
 
-            builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+            builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false);
 
             builder.Logging.AddSimpleConsole(options =>
-                {
-                    options.SingleLine = true;
-                    options.TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff ";
-                });
+            {
+                options.SingleLine = true;
+                options.TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff ";
+            });
 
             // 2. Read connection string from configuration file
-            string connectionString = builder.Configuration.GetConnectionString("demo") ?? throw new InvalidOperationException("Missing connection string 'demo' in configuration.");
+            string connectionString = builder.Configuration.GetConnectionString("demo")
+                ?? throw new InvalidOperationException("Missing connection string 'demo' in configuration.");
 
             // 3. Register services
             builder.Services
@@ -40,10 +41,13 @@ internal class Program
 
             builder.Services
                 .AddTransient<DatabaseTests>()
-                .AddTransient<SqlHelperTests>()
+                .AddTransient<SqlHelperTests>();
+
+            builder.Services
                 .AddHostedService<TestsWorker>();
 
             var host = builder.Build();
+
             await host.RunAsync();
         }
         catch (OperationCanceledException)

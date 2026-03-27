@@ -26,9 +26,10 @@ internal sealed class DatabaseTests
         try
         {
             List<User> modelList = [];
+            int state = 1;
 
             DbParameter[] parameters = [
-                _database.CreateParameter("@p1", DbType.Int32, 1)
+                _database.CreateParameter("@p1", DbType.Int32, state)
             ];
 
             string sql = $$"""
@@ -45,7 +46,7 @@ internal sealed class DatabaseTests
                 modelList.Add(reader.MapToUser());
             }
 
-            _logger.LogInformation("Reading User successfully. State: {state}, Total matching records: {count}", 1, modelList.Count);
+            _logger.LogInformation("Reading User successfully. State: {state}, Total matching records: {count}", state, modelList.Count);
 
             foreach (var model in modelList)
             {
@@ -54,7 +55,7 @@ internal sealed class DatabaseTests
         }
         catch (Exception ex)
         {
-            _logger.LogError("Unhandled exception occurred during testing:\n{exception}", ex.ToString());
+            _logger.LogError("Exception occurred during testing:\n{exception}", ex.ToString());
         }
 
         _logger.LogInformation("Finished Testing `ExecuteReaderAsync`");
@@ -74,7 +75,7 @@ internal sealed class DatabaseTests
         }
         catch (Exception ex)
         {
-            _logger.LogError("Unhandled exception occurred during testing:\n{exception}", ex.ToString());
+            _logger.LogError("Exception occurred during testing:\n{exception}", ex.ToString());
         }
 
         _logger.LogInformation("Finished Testing `ExecuteScalarAsync`");
@@ -86,16 +87,17 @@ internal sealed class DatabaseTests
 
         try
         {
+            string userCode = "usr001";
             DbParameter[] parameters1 = [
-                _database.CreateParameter("@p11", DbType.String, "usr001")
+                _database.CreateParameter("@p11", DbType.String, userCode)
             ];
             string sql1 = "DELETE FROM [User] WHERE UserCode = @p11;";
 
             DbParameter[] parameters2 = [
-                _database.CreateParameter("@p21", DbType.String, "usr001"),
-                _database.CreateParameter("@p22", DbType.String, "Tom"),
+                _database.CreateParameter("@p21", DbType.String, userCode),
+                _database.CreateParameter("@p22", DbType.String, "James"),
                 _database.CreateParameter("@p23", DbType.String, "W3Rb3AoWjXs="),
-                _database.CreateParameter("@p24", DbType.String, "tom@gmail.com"),
+                _database.CreateParameter("@p24", DbType.String, "James.Bond@gmail.com"),
                 _database.CreateParameter("@p25", DbType.String, "18618618666")
             ];
             string sql2 = $$"""
@@ -106,14 +108,13 @@ internal sealed class DatabaseTests
             try
             {
                 int affectedRows;
-                await _database.BeginTransactionAsync(cancellationToken: stoppingToken);
-                _logger.LogInformation("Starts to execute sql1");
-                affectedRows = await _database.ExecuteNonQueryAsync(CommandType.Text, sql1, parameters1, stoppingToken);
-                _logger.LogInformation("Removing User successfully. User code: {userCode}, affected records: {count}", "usr001", affectedRows);
 
-                _logger.LogInformation("Starts to execute sql2");
+                await _database.BeginTransactionAsync(cancellationToken: stoppingToken);
+                _logger.LogInformation("Starts to execute sql1: Removing user");
+                affectedRows = await _database.ExecuteNonQueryAsync(CommandType.Text, sql1, parameters1, stoppingToken);
+
+                _logger.LogInformation("Starts to execute sql2: Adding user");
                 affectedRows = await _database.ExecuteNonQueryAsync(CommandType.Text, sql2, parameters2, stoppingToken);
-                _logger.LogInformation("Adding User successfully. User code: {userCode}, affected records: {count}", "usr001", affectedRows);
 
                 await _database.CommitAsync(stoppingToken);
             }
@@ -125,7 +126,7 @@ internal sealed class DatabaseTests
         }
         catch (Exception ex)
         {
-            _logger.LogError("Unhandled exception occurred during testing:\n{exception}", ex.ToString());
+            _logger.LogError("Exception occurred during testing:\n{exception}", ex.ToString());
         }
 
         _logger.LogInformation("Finished Testing `ExecuteTransactionAsync`");

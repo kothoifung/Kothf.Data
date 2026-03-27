@@ -39,8 +39,7 @@ internal static class DbProviderFactoryCache
             {
                 if (!_factoryCache.TryGetValue(providerInvariantName, out factory))
                 {
-                    factory = DbProviderFactories.GetFactory(providerInvariantName);
-                    _factoryCache[providerInvariantName] = factory;
+                    _factoryCache[providerInvariantName] = factory = DbProviderFactories.GetFactory(providerInvariantName);
                 }
             }
 #else
@@ -48,8 +47,7 @@ internal static class DbProviderFactoryCache
             {
                 if (!_factoryCache.TryGetValue(providerInvariantName, out factory))
                 {
-                    factory = DbProviderFactories.GetFactory(providerInvariantName);
-                    _factoryCache[providerInvariantName] = factory;
+                    _factoryCache[providerInvariantName] = factory = DbProviderFactories.GetFactory(providerInvariantName);
                 }
             }
 #endif

@@ -29,7 +29,6 @@ internal static class DbProviderFactoryCache
     /// </summary>
     /// <param name="providerInvariantName">The invariant name of the data provider</param>
     /// <returns>The DbProviderFactory instance</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DbProviderFactory GetFactory(string providerInvariantName)
     {
         if (!_factoryCache.TryGetValue(providerInvariantName, out var factory))

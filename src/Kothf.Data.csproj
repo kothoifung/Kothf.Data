@@ -5,7 +5,7 @@
 	    <IsPackable>true</IsPackable>   
         <!-- Required identity -->
         <PackageId>Kothf.Data</PackageId>
-        <Version>2.10.3</Version>
+        <Version>2.10.4</Version>
         <Authors>Kothf</Authors>
         <Description>A lightweight ADO.NET helper library that provides a `Database` object, and a `SqlHelper` utility.</Description>
         <!-- Strongly recommended -->

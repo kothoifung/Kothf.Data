@@ -22,7 +22,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// <summary>
     /// The settings required to establish a database connection
     /// </summary>
-    public ConnectionStringSettings ConnectionStringSettings { get; } = connectionStringSettings ?? throw new ArgumentNullException(nameof(ConnectionStringSettings));
+    public ConnectionStringSettings ConnectionStringSettings { get; } = connectionStringSettings ?? throw new ArgumentNullException(nameof(connectionStringSettings));
 
     /// <summary>
     /// Indicates whether a transaction is currently active
@@ -38,7 +38,6 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// <summary>
     /// Executes the command and returns the result set as a DataTable
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DataTable ExecuteDataTable(CommandType commandType, string commandText, DbParameter[]? commandParameters = null)
     {
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
@@ -48,7 +47,6 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// <summary>
     /// Asynchronously executes the command and returns the result set as a DataTable
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public async Task<DataTable> ExecuteDataTableAsync(CommandType commandType, string commandText, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
     {
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
@@ -58,7 +56,6 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// <summary>
     /// Executes the command and returns the number of rows affected
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int ExecuteNonQuery(CommandType commandType, string commandText, DbParameter[]? commandParameters = null)
     {
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
@@ -68,7 +65,6 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// <summary>
     /// Asynchronously executes the command and returns the number of rows affected
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public async Task<int> ExecuteNonQueryAsync(CommandType commandType, string commandText, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
     {
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
@@ -76,29 +72,96 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     }
 
     /// <summary>
-    /// Executes the command and returns a forward-only data reader over the result set
+    /// Executes the command and returns the numbers of rows in the result set
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public DbDataReader ExecuteReader(CommandType commandType, string commandText, DbParameter[]? commandParameters = null)
+    /// <remarks>
+    /// A forward-only data reader over the result set will be used internally.
+    /// Please ensure to supply a result set handler to consume the reader.
+    /// </remarks>
+    public List<T> ExecuteReader<T>(CommandType commandType, string commandText, Func<DbDataReader, List<T>> resultSetHandler, DbParameter[]? commandParameters = null)
     {
+        ArgumentNullException.ThrowIfNull(resultSetHandler);
+
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
-        return SqlHelper.ExecuteReader(command);
+        using var reader = SqlHelper.ExecuteReader(command);
+
+        var result = resultSetHandler(reader);
+
+        return result;
+    }
+
+    /// <summary>
+    /// Executes the command and returns the numbers of rows in the result set
+    /// </summary>
+    /// <remarks>
+    /// A forward-only data reader over the result set will be used internally.
+    /// Please ensure to supply a record handler to consume the reader.
+    /// </remarks>
+    public List<T> ExecuteReader<T>(CommandType commandType, string commandText, Func<DbDataReader, T> recordHandler, DbParameter[]? commandParameters = null)
+    {
+        ArgumentNullException.ThrowIfNull(recordHandler);
+
+        using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
+        using var reader = SqlHelper.ExecuteReader(command);
+
+        var result = new List<T>();
+
+        while (reader.Read())
+        {
+            var record = recordHandler(reader);
+            result.Add(record);
+        }
+
+        return result;
     }
 
     /// <summary>
     /// Asynchronously executes the command and returns a forward-only data reader over the result set.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public async Task<DbDataReader> ExecuteReaderAsync(CommandType commandType, string commandText, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
+    /// <remarks>
+    /// A forward-only data reader over the result set will be used internally.
+    /// Please ensure to supply a result set handler to consume the reader.
+    /// </remarks>
+    public async Task<List<T>> ExecuteReaderAsync<T>(CommandType commandType, string commandText, Func<DbDataReader, CancellationToken, Task<List<T>>> resultSetHandler, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
     {
-        using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
-        return await SqlHelper.ExecuteReaderAsync(command, cancellationToken).ConfigureAwait(false);
+        ArgumentNullException.ThrowIfNull(resultSetHandler);
+
+        await using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
+        await using var reader = await SqlHelper.ExecuteReaderAsync(command, cancellationToken).ConfigureAwait(false);
+
+        var result = await resultSetHandler(reader, cancellationToken).ConfigureAwait(false);
+
+        return result;
+    }
+
+    /// <summary>
+    /// Asynchronously executes the command and returns a forward-only data reader over the result set.
+    /// </summary>
+    /// <remarks>
+    /// A forward-only data reader over the result set will be used internally.
+    /// Please ensure to supply a record handler to consume the reader.
+    /// </remarks>
+    public async Task<List<T>> ExecuteReaderAsync<T>(CommandType commandType, string commandText, Func<DbDataReader, CancellationToken, Task<T>> recordHandler, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(recordHandler);
+
+        await using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
+        await using var reader = await SqlHelper.ExecuteReaderAsync(command, cancellationToken).ConfigureAwait(false);
+
+        var result = new List<T>();
+
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var record = await recordHandler(reader, cancellationToken).ConfigureAwait(false);
+            result.Add(record);
+        }
+
+        return result;
     }
 
     /// <summary>
     /// Executes the command and returns the first column of the first row in the result set
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public object? ExecuteScalar(CommandType commandType, string commandText, DbParameter[]? commandParameters = null)
     {
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
@@ -108,7 +171,6 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// <summary>
     /// Asynchronously executes the command and returns the first column of the first row in the result set.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public async Task<object?> ExecuteScalarAsync(CommandType commandType, string commandText, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
     {
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
@@ -118,7 +180,6 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// <summary>
     /// Begins a database transaction
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void BeginTransaction(IsolationLevel isolationLevel)
     {
         ThrowIfTransactionOrConnectionInProgress();
@@ -131,7 +192,6 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// <summary>
     /// Asynchronously begins a database transaction
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public async Task BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken)
     {
         ThrowIfTransactionOrConnectionInProgress();
@@ -144,7 +204,6 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// <summary>
     /// Commits the current transaction
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Commit()
     {
         ArgumentNullException.ThrowIfNull(_transaction);
@@ -155,7 +214,6 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// <summary>
     /// Asynchronously commits the current transaction
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public async Task CommitAsync(CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(_transaction);
@@ -166,7 +224,6 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// <summary>
     /// Rolls back the current transaction
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Rollback()
     {
         ArgumentNullException.ThrowIfNull(_transaction);
@@ -177,7 +234,6 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// <summary>
     /// Asynchronously rolls back the current transaction
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public async Task RollbackAsync(CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(_transaction);
@@ -194,24 +250,23 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected DbConnection GetOrCreateConnection()
-    {
-        return _connection ??= SqlHelper.CreateConnection(ConnectionStringSettings.ConnectionString, ConnectionStringSettings.ProviderInvariantName);
-    }
+        => _connection ??= SqlHelper.CreateConnection(ConnectionStringSettings.ConnectionString, ConnectionStringSettings.ProviderInvariantName);
 
     /// <summary>
     /// Cleans up transaction-related resources by disposing the current transaction
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void CleanupTransaction()
     {
         _transaction?.Dispose();
         _transaction = null;
+
+        // Close the connection for it's always been opened in BeginTransaction.
+        _connection?.Close();
     }
 
     /// <summary>
     /// Asynchronously cleans up transaction-related resources by disposing the current transaction
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private async Task CleanupTransactionAsync()
     {
         if (_transaction != null)
@@ -219,12 +274,17 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
             await _transaction.DisposeAsync().ConfigureAwait(false);
             _transaction = null;
         }
+
+        // Close the connection for it's always been opened in BeginTransaction.
+        if (_connection != null)
+        {
+            await _connection.CloseAsync().ConfigureAwait(false);
+        }
     }
 
     /// <summary>
     /// Throws an exception if a transaction is currently active or if the saved connection is already in progress
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ThrowIfTransactionOrConnectionInProgress()
     {
         if (_transaction != null)
@@ -239,7 +299,8 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) { return; }
+        if (_disposed)
+        { return; }
 
         _transaction?.Dispose();
         _transaction = null;
@@ -256,7 +317,8 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (_disposed) { return; }
+        if (_disposed)
+        { return; }
 
         if (_transaction != null)
         {

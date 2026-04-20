@@ -52,6 +52,12 @@ public static class SqlHelper
     }
 
     /// <summary>
+    /// Creates a provider-specific DbConnection instance
+    /// </summary>
+    public static DbConnection CreateConnection(ConnectionStringSettings connectionStringSettings)
+        => CreateConnection(connectionStringSettings.ConnectionString, connectionStringSettings.ProviderInvariantName);
+
+    /// <summary>
     /// Creates a provider-specific DbConnection instance and opens it before returning
     /// </summary>
     public static DbConnection CreateConnectionAndOpen(string connectionString, string providerInvariantName)
@@ -64,6 +70,12 @@ public static class SqlHelper
 
         return connection;
     }
+
+    /// <summary>
+    /// Creates a provider-specific DbConnection instance and opens it before returning
+    /// </summary>
+    public static DbConnection CreateConnectionAndOpen(ConnectionStringSettings connectionStringSettings)
+        => CreateConnection(connectionStringSettings.ConnectionString, connectionStringSettings.ProviderInvariantName);
 
     /// <summary>
     /// Creates a provider-specific DbConnection instance and asynchronously opens it before returning
@@ -80,6 +92,12 @@ public static class SqlHelper
     }
 
     /// <summary>
+    /// Creates a provider-specific DbConnection instance and asynchronously opens it before returning
+    /// </summary>
+    public static Task<DbConnection> CreateConnectionAndOpenAsync(ConnectionStringSettings connectionStringSettings, CancellationToken cancellationToken = default)
+        => CreateConnectionAndOpenAsync(connectionStringSettings.ConnectionString, connectionStringSettings.ProviderInvariantName, cancellationToken);
+
+    /// <summary>
     /// Creates a provider-specific DbParameter instance
     /// </summary>
     public static DbParameter CreateParameter<T>(string providerInvariantName, string parameterName, DbType type, T? value = default)
@@ -89,10 +107,16 @@ public static class SqlHelper
 
         parameter.ParameterName = parameterName;
         parameter.DbType = type;
-        parameter.Value = value;
+        parameter.Value = value is null ? DBNull.Value : value;
 
         return parameter;
     }
+
+    /// <summary>
+    /// Creates a provider-specific DbParameter instance
+    /// </summary>
+    public static DbParameter CreateParameter<T>(ConnectionStringSettings connectionStringSettings, string parameterName, DbType type, T? value = default)
+        => CreateParameter(connectionStringSettings.ProviderInvariantName, parameterName, type, value);
 
     /// <summary>
     /// Executes the command and returns the result set as a DataTable
@@ -263,8 +287,7 @@ public static class SqlHelper
     /// <summary>
     /// Ensures the specified connection is open, opening it only when necessary.
     /// </summary>
-    /// <returns>True if the connection was opened by this method; otherwise, false.</returns>    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <returns>True if the connection was opened by this method; otherwise, false.</returns>
     private static bool TryOpenConnection(DbConnection? connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -286,8 +309,7 @@ public static class SqlHelper
     /// <summary>
     /// Ensures the specified connection is open, opening it asynchronously only when necessary.
     /// </summary>
-    /// <returns>True if the connection was opened by this method; otherwise, false.</returns>    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <returns>True if the connection was opened by this method; otherwise, false.</returns> 
     private static async Task<bool> TryOpenConnectionAsync(DbConnection? connection, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -309,7 +331,6 @@ public static class SqlHelper
     /// <summary>
     /// Closes the connection only if it was opened by the caller previously and is not already closed
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void TryCloseConnection(DbConnection? connection, bool shouldClose)
     {
         if (shouldClose &&
@@ -322,7 +343,6 @@ public static class SqlHelper
     /// <summary>
     /// Asynchronously closes the connection only if it was opened by the caller previously and is not already closed
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static async Task TryCloseConnectionAsync(DbConnection? connection, bool shouldClose)
     {
         if (shouldClose &&

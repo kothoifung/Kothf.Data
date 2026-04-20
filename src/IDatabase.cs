@@ -49,14 +49,40 @@ public interface IDatabase : IAsyncDisposable, IDisposable
     Task<int> ExecuteNonQueryAsync(CommandType commandType, string commandText, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Executes the command and returns a forward-only data reader over the result set
+    /// Executes the command and returns the numbers of rows in the result set
     /// </summary>
-    DbDataReader ExecuteReader(CommandType commandType, string commandText, DbParameter[]? commandParameters = null);
+    /// <remarks>
+    /// A forward-only data reader over the result set will be used internally.
+    /// Please ensure to supply a result set handler to consume the reader.
+    /// </remarks>
+    List<T> ExecuteReader<T>(CommandType commandType, string commandText, Func<DbDataReader, List<T>> resultSetHandler, DbParameter[]? commandParameters = null);
+
+    /// <summary>
+    /// Executes the command and returns the numbers of rows in the result set
+    /// </summary>
+    /// <remarks>
+    /// A forward-only data reader over the result set will be used internally.
+    /// Please ensure to supply a record handler to consume the reader.
+    /// </remarks>
+    List<T> ExecuteReader<T>(CommandType commandType, string commandText, Func<DbDataReader, T> recordHandler, DbParameter[]? commandParameters = null);
 
     /// <summary>
     /// Asynchronously executes the command and returns a forward-only data reader over the result set.
     /// </summary>
-    Task<DbDataReader> ExecuteReaderAsync(CommandType commandType, string commandText, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default);
+    /// <remarks>
+    /// A forward-only data reader over the result set will be used internally.
+    /// Please ensure to supply a result set handler to consume the reader.
+    /// </remarks>
+    Task<List<T>> ExecuteReaderAsync<T>(CommandType commandType, string commandText, Func<DbDataReader, CancellationToken, Task<List<T>>> resultSetHandler, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Asynchronously executes the command and returns a forward-only data reader over the result set.
+    /// </summary>
+    /// <remarks>
+    /// A forward-only data reader over the result set will be used internally.
+    /// Please ensure to supply a record handler to consume the reader.
+    /// </remarks>
+    Task<List<T>> ExecuteReaderAsync<T>(CommandType commandType, string commandText, Func<DbDataReader, CancellationToken, Task<T>> recordHandler, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Executes the command and returns the first column of the first row in the result set

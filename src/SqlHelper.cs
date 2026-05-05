@@ -20,7 +20,12 @@ public static class SqlHelper
     /// <remarks>Using either the connection associated with the provided transaction or the provided connection</remarks>
     public static DbCommand CreateCommand(DbConnection? connection, DbTransaction? transaction, CommandType commandType, string commandText, DbParameter[]? commandParameters = null)
     {
-        var command = (transaction?.Connection ?? connection)?.CreateCommand()
+        var transactionConnection = transaction?.Connection;
+
+        if (connection != null && transactionConnection != null && !ReferenceEquals(connection, transactionConnection))
+            throw new ArgumentException("The specified connection does not match the transaction connection.", nameof(connection));
+
+        var command = (transactionConnection ?? connection)?.CreateCommand()
             ?? throw new InvalidOperationException("Failed to create the command.");
 
         command.CommandText = commandText;
@@ -123,13 +128,24 @@ public static class SqlHelper
     /// </summary>
     public static DataTable ExecuteDataTable(DbCommand command)
     {
-        var dt = new DataTable();
-
         using var reader = ExecuteReader(command);
 
+        var dt = BuildDataTableSchemaFromReader(reader);
+
         dt.BeginLoadData();
-        dt.Load(reader, LoadOption.OverwriteChanges);
-        dt.EndLoadData();
+        try
+        {
+            object[] values = new object[dt.Columns.Count];
+            while (reader.Read())
+            {
+                reader.GetValues(values);
+                dt.Rows.Add(values);
+            }
+        }
+        finally
+        {
+            dt.EndLoadData();
+        }
 
         return dt;
     }
@@ -139,13 +155,24 @@ public static class SqlHelper
     /// </summary>
     public static async Task<DataTable> ExecuteDataTableAsync(DbCommand command, CancellationToken cancellationToken = default)
     {
-        var dt = new DataTable();
-
         await using var reader = await ExecuteReaderAsync(command, cancellationToken).ConfigureAwait(false);
 
+        var dt = BuildDataTableSchemaFromReader(reader);
+
         dt.BeginLoadData();
-        dt.Load(reader, LoadOption.OverwriteChanges);
-        dt.EndLoadData();
+        try
+        {
+            object[] values = new object[dt.Columns.Count];
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                reader.GetValues(values);
+                dt.Rows.Add(values);
+            }
+        }
+        finally
+        {
+            dt.EndLoadData();
+        }
 
         return dt;
     }
@@ -350,5 +377,41 @@ public static class SqlHelper
         {
             await connection.CloseAsync().ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Builds a DataTable schema based on the metadata of the provided data reader, without loading any data.
+    /// </summary>
+    /// <param name="reader">A data reader</param>
+    /// <returns>A DataTable representing the schema of the data reader</returns>
+    private static DataTable BuildDataTableSchemaFromReader(DbDataReader reader)
+    {
+        var dt = new DataTable();
+        int fieldCount = reader.FieldCount;
+
+        for (int index = 0; index < fieldCount; index++)
+        {
+            string columnName = reader.GetName(index);
+            if (string.IsNullOrEmpty(columnName))
+            {
+                columnName = $"Column{index}";
+            }
+
+            if (dt.Columns.Contains(columnName))
+            {
+                int suffix = 1;
+                string baseName = columnName;
+                do
+                {
+                    columnName = $"{baseName}_{suffix++}";
+                }
+                while (dt.Columns.Contains(columnName));
+            }
+
+            Type columnType = reader.GetFieldType(index);
+            dt.Columns.Add(columnName, Nullable.GetUnderlyingType(columnType) ?? columnType);
+        }
+
+        return dt;
     }
 }

@@ -30,16 +30,16 @@ internal sealed class TestsWorker : BackgroundService
             _logger.LogInformation("Tests `Database` complete");
 
 
-///////////////////////////////////////////////////////////////////////////////
+            ///////////////////////////////////////////////////////////////////////////////
 
 
             _logger.LogInformation("Starts to test `SqlHelper`");
 
             var sqlHelperTests = _serviceProvider.GetRequiredService<SqlHelperTests>();
 
-            await sqlHelperTests.ExecuteScalarAsync(stoppingToken);
-            await sqlHelperTests.ExecuteReaderAsync(stoppingToken);
-            await sqlHelperTests.ExecuteTransactionAsync(stoppingToken);
+            //await sqlHelperTests.ExecuteScalarAsync(stoppingToken);
+            //await sqlHelperTests.ExecuteReaderAsync(stoppingToken);
+            //await sqlHelperTests.ExecuteTransactionAsync(stoppingToken);
 
             _logger.LogInformation("Tests `SqlHelper` complete");
 

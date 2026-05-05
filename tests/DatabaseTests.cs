@@ -25,7 +25,7 @@ internal sealed class DatabaseTests
 
         try
         {
-            List<User> modelList = [];
+            List<User> modelList;
             int state = 1;
 
             DbParameter[] parameters = [
@@ -39,12 +39,17 @@ internal sealed class DatabaseTests
                 WHERE [State] = @p1;
             """;
 
-            using var reader = await _database.ExecuteReaderAsync(CommandType.Text, sql, parameters, stoppingToken);
-
-            while (await reader.ReadAsync(stoppingToken))
-            {
-                modelList.Add(reader.MapToUser());
-            }
+            modelList = await _database.ExecuteReaderAsync<User>(CommandType.Text, sql, async (reader, ct) => new User {
+                UserCode = !reader.IsDBNull(0) ? reader.GetString(0) : null,
+                UserName = !reader.IsDBNull(1) ? reader.GetString(1) : null,
+                Password = !reader.IsDBNull(2) ? reader.GetString(2) : null,
+                Email = !reader.IsDBNull(3) ? reader.GetString(3) : null,
+                Phone = !reader.IsDBNull(4) ? reader.GetString(4) : null,
+                Attributes = !reader.IsDBNull(5) ? reader.GetInt32(5) : null,
+                State = !reader.IsDBNull(6) ? reader.GetInt32(6) : null,
+                CreatedTime = !reader.IsDBNull(7) ? reader.GetDateTime(7) : null,
+                LastModifiedTime = !reader.IsDBNull(8) ? reader.GetDateTime(8) : null
+            }, parameters, stoppingToken);
 
             _logger.LogInformation("Reading User successfully. State: {state}, Total matching records: {count}", state, modelList.Count);
 

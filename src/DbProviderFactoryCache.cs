@@ -3,11 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Data.Common;
-using System.Runtime.CompilerServices;
-
-#if NET9_0_OR_GREATER
-using System.Threading;
-#endif
+using System.Collections.Concurrent;
 
 namespace Kothf.Data;
 
@@ -17,12 +13,7 @@ namespace Kothf.Data;
 /// <remarks>Intended to optimize repeated access to DbProviderFactories.</remarks>
 internal static class DbProviderFactoryCache
 {
-    private static readonly Dictionary<string, DbProviderFactory> _factoryCache = [];
-#if NET9_0_OR_GREATER
-    private static readonly Lock _lock = new();
-#else
-    private static readonly object _syncRoot = new();
-#endif
+    private static readonly ConcurrentDictionary<string, DbProviderFactory> _factoryCache = new();
 
     /// <summary>
     /// Retrieves the DbProviderFactory instance for the specified data provider
@@ -31,27 +22,13 @@ internal static class DbProviderFactoryCache
     /// <returns>The DbProviderFactory instance</returns>
     public static DbProviderFactory GetFactory(string providerInvariantName)
     {
-        if (!_factoryCache.TryGetValue(providerInvariantName, out var factory))
+        // First check the cache to avoid unnecessary calls to DbProviderFactories.GetFactory
+        // Because the DbProviderFactory instance was existed in most cases.
+        if (_factoryCache.TryGetValue(providerInvariantName, out var factory))
         {
-#if NET9_0_OR_GREATER
-            using (_lock.EnterScope())
-            {
-                if (!_factoryCache.TryGetValue(providerInvariantName, out factory))
-                {
-                    _factoryCache[providerInvariantName] = factory = DbProviderFactories.GetFactory(providerInvariantName);
-                }
-            }
-#else
-            lock (_syncRoot)
-            {
-                if (!_factoryCache.TryGetValue(providerInvariantName, out factory))
-                {
-                    _factoryCache[providerInvariantName] = factory = DbProviderFactories.GetFactory(providerInvariantName);
-                }
-            }
-#endif
+            return factory;
         }
 
-        return factory;
+        return _factoryCache.GetOrAdd(providerInvariantName, static name => DbProviderFactories.GetFactory(name));
     }
 }

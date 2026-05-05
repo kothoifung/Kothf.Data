@@ -53,27 +53,9 @@ public interface IDatabase : IAsyncDisposable, IDisposable
     /// </summary>
     /// <remarks>
     /// A forward-only data reader over the result set will be used internally.
-    /// Please ensure to supply a result set handler to consume the reader.
-    /// </remarks>
-    List<T> ExecuteReader<T>(CommandType commandType, string commandText, Func<DbDataReader, List<T>> resultSetHandler, DbParameter[]? commandParameters = null);
-
-    /// <summary>
-    /// Executes the command and returns the numbers of rows in the result set
-    /// </summary>
-    /// <remarks>
-    /// A forward-only data reader over the result set will be used internally.
     /// Please ensure to supply a record handler to consume the reader.
     /// </remarks>
     List<T> ExecuteReader<T>(CommandType commandType, string commandText, Func<DbDataReader, T> recordHandler, DbParameter[]? commandParameters = null);
-
-    /// <summary>
-    /// Asynchronously executes the command and returns a forward-only data reader over the result set.
-    /// </summary>
-    /// <remarks>
-    /// A forward-only data reader over the result set will be used internally.
-    /// Please ensure to supply a result set handler to consume the reader.
-    /// </remarks>
-    Task<List<T>> ExecuteReaderAsync<T>(CommandType commandType, string commandText, Func<DbDataReader, CancellationToken, Task<List<T>>> resultSetHandler, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously executes the command and returns a forward-only data reader over the result set.

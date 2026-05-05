@@ -17,7 +17,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
 {
     protected DbConnection? _connection;
     protected DbTransaction? _transaction;
-    private bool _disposed;
+    private bool _disposed = false;
 
     /// <summary>
     /// The settings required to establish a database connection
@@ -40,6 +40,8 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public DataTable ExecuteDataTable(CommandType commandType, string commandText, DbParameter[]? commandParameters = null)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
         return SqlHelper.ExecuteDataTable(command);
     }
@@ -49,7 +51,9 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public async Task<DataTable> ExecuteDataTableAsync(CommandType commandType, string commandText, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
     {
-        using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        await using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
         return await SqlHelper.ExecuteDataTableAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
@@ -58,6 +62,8 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public int ExecuteNonQuery(CommandType commandType, string commandText, DbParameter[]? commandParameters = null)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
         return SqlHelper.ExecuteNonQuery(command);
     }
@@ -67,27 +73,10 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public async Task<int> ExecuteNonQueryAsync(CommandType commandType, string commandText, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
     {
-        using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        await using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
         return await SqlHelper.ExecuteNonQueryAsync(command, cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Executes the command and returns the numbers of rows in the result set
-    /// </summary>
-    /// <remarks>
-    /// A forward-only data reader over the result set will be used internally.
-    /// Please ensure to supply a result set handler to consume the reader.
-    /// </remarks>
-    public List<T> ExecuteReader<T>(CommandType commandType, string commandText, Func<DbDataReader, List<T>> resultSetHandler, DbParameter[]? commandParameters = null)
-    {
-        ArgumentNullException.ThrowIfNull(resultSetHandler);
-
-        using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
-        using var reader = SqlHelper.ExecuteReader(command);
-
-        var result = resultSetHandler(reader);
-
-        return result;
     }
 
     /// <summary>
@@ -99,6 +88,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </remarks>
     public List<T> ExecuteReader<T>(CommandType commandType, string commandText, Func<DbDataReader, T> recordHandler, DbParameter[]? commandParameters = null)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(recordHandler);
 
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
@@ -120,29 +110,11 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     /// <remarks>
     /// A forward-only data reader over the result set will be used internally.
-    /// Please ensure to supply a result set handler to consume the reader.
-    /// </remarks>
-    public async Task<List<T>> ExecuteReaderAsync<T>(CommandType commandType, string commandText, Func<DbDataReader, CancellationToken, Task<List<T>>> resultSetHandler, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(resultSetHandler);
-
-        await using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
-        await using var reader = await SqlHelper.ExecuteReaderAsync(command, cancellationToken).ConfigureAwait(false);
-
-        var result = await resultSetHandler(reader, cancellationToken).ConfigureAwait(false);
-
-        return result;
-    }
-
-    /// <summary>
-    /// Asynchronously executes the command and returns a forward-only data reader over the result set.
-    /// </summary>
-    /// <remarks>
-    /// A forward-only data reader over the result set will be used internally.
     /// Please ensure to supply a record handler to consume the reader.
     /// </remarks>
     public async Task<List<T>> ExecuteReaderAsync<T>(CommandType commandType, string commandText, Func<DbDataReader, CancellationToken, Task<T>> recordHandler, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(recordHandler);
 
         await using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
@@ -164,6 +136,8 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public object? ExecuteScalar(CommandType commandType, string commandText, DbParameter[]? commandParameters = null)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
         return SqlHelper.ExecuteScalar(command);
     }
@@ -173,7 +147,9 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public async Task<object?> ExecuteScalarAsync(CommandType commandType, string commandText, DbParameter[]? commandParameters = null, CancellationToken cancellationToken = default)
     {
-        using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        await using var command = SqlHelper.CreateCommand(GetOrCreateConnection(), _transaction, commandType, commandText, commandParameters);
         return await SqlHelper.ExecuteScalarAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
@@ -182,6 +158,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public void BeginTransaction(IsolationLevel isolationLevel)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         ThrowIfTransactionOrConnectionInProgress();
 
         GetOrCreateConnection();
@@ -194,6 +171,7 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public async Task BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         ThrowIfTransactionOrConnectionInProgress();
 
         GetOrCreateConnection();
@@ -206,9 +184,17 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public void Commit()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(_transaction);
-        _transaction.Commit();
-        CleanupTransaction();
+
+        try
+        {
+            _transaction.Commit();
+        }
+        finally
+        {
+            CleanupTransaction();
+        }
     }
 
     /// <summary>
@@ -216,9 +202,17 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public async Task CommitAsync(CancellationToken cancellationToken)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(_transaction);
-        await _transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-        await CleanupTransactionAsync().ConfigureAwait(false);
+
+        try
+        {
+            await _transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            await CleanupTransactionAsync().ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -226,9 +220,17 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public void Rollback()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(_transaction);
-        _transaction.Rollback();
-        CleanupTransaction();
+
+        try
+        {
+            _transaction.Rollback();
+        }
+        finally
+        {
+            CleanupTransaction();
+        }
     }
 
     /// <summary>
@@ -236,9 +238,17 @@ public class Database(ConnectionStringSettings connectionStringSettings) : IData
     /// </summary>
     public async Task RollbackAsync(CancellationToken cancellationToken)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(_transaction);
-        await _transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
-        await CleanupTransactionAsync().ConfigureAwait(false);
+
+        try
+        {
+            await _transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            await CleanupTransactionAsync().ConfigureAwait(false);
+        }
     }
 
     /// <summary>

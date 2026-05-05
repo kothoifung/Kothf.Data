@@ -21,10 +21,6 @@ internal sealed class SqlHelperTests
         _logger = logger;
     }
 
-    private string ConnectionString => _connectionStringSettings.ConnectionString;
-
-    private string ProviderInvariantName => _connectionStringSettings.ProviderInvariantName;
-
     public async Task ExecuteReaderAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Start to test `ExecuteReaderAsync`");
@@ -35,7 +31,7 @@ internal sealed class SqlHelperTests
             int state = 1;
 
             DbParameter[] parameters = [
-                SqlHelper.CreateParameter(ProviderInvariantName, "@p1", DbType.Int32, state)
+                SqlHelper.CreateParameter(_connectionStringSettings.ProviderInvariantName, "@p1", DbType.Int32, state)
             ];
 
             string sql = $$"""
@@ -45,7 +41,7 @@ internal sealed class SqlHelperTests
                 WHERE [State] = @p1;
             """;
 
-            using var connection = SqlHelper.CreateConnection(ConnectionString, ProviderInvariantName);
+            using var connection = SqlHelper.CreateConnection(_connectionStringSettings);
             using var command = SqlHelper.CreateCommand(connection, null, CommandType.Text, sql, parameters);
             using var reader = await SqlHelper.ExecuteReaderAsync(command, stoppingToken);
 
@@ -77,7 +73,7 @@ internal sealed class SqlHelperTests
         {
             string sql = "SELECT COUNT(*) FROM [User];";
 
-            using var connection = SqlHelper.CreateConnection(ConnectionString, ProviderInvariantName);
+            using var connection = SqlHelper.CreateConnection(_connectionStringSettings);
             using var command = SqlHelper.CreateCommand(connection, null, CommandType.Text, sql);
             object count = await SqlHelper.ExecuteScalarAsync(command, stoppingToken);
 
@@ -99,23 +95,23 @@ internal sealed class SqlHelperTests
         {
             string userCode = "usr001";
             DbParameter[] parameters1 = [
-                SqlHelper.CreateParameter(ProviderInvariantName, "@p11", DbType.String, userCode)
+                SqlHelper.CreateParameter(_connectionStringSettings, "@p11", DbType.String, userCode)
             ];
             string sql1 = "DELETE FROM [User] WHERE UserCode = @p11;";
 
             DbParameter[] parameters2 = [
-                SqlHelper.CreateParameter(ProviderInvariantName, "@p21", DbType.String, userCode),
-                SqlHelper.CreateParameter(ProviderInvariantName, "@p22", DbType.String, "James"),
-                SqlHelper.CreateParameter(ProviderInvariantName, "@p23", DbType.String, "W3Rb3AoWjXs="),
-                SqlHelper.CreateParameter(ProviderInvariantName, "@p24", DbType.String, "James.Bond@gmail.com"),
-                SqlHelper.CreateParameter(ProviderInvariantName, "@p25", DbType.String, "18618618666")
+                SqlHelper.CreateParameter(_connectionStringSettings, "@p21", DbType.String, userCode),
+                SqlHelper.CreateParameter(_connectionStringSettings, "@p22", DbType.String, "James"),
+                SqlHelper.CreateParameter(_connectionStringSettings, "@p23", DbType.String, "W3Rb3AoWjXs="),
+                SqlHelper.CreateParameter(_connectionStringSettings, "@p24", DbType.String, "James.Bond@gmail.com"),
+                SqlHelper.CreateParameter(_connectionStringSettings, "@p25", DbType.String, "18618618666")
             ];
             string sql2 = $$"""
             INSERT INTO [User] (UserCode,UserName,Password,Email,Phone,Attributes,[State],CreatedTime,LastModifiedTime) VALUES
                 (@p21,@p22,@p23,@p24,@p25,1,1,GETDATE(),GETDATE());
             """;
 
-            using var connection = await SqlHelper.CreateConnectionAndOpenAsync(ConnectionString, ProviderInvariantName, stoppingToken);
+            using var connection = await SqlHelper.CreateConnectionAndOpenAsync(_connectionStringSettings, stoppingToken);
             using var transaction = await connection.BeginTransactionAsync(stoppingToken);
             int affectedRows = 0;
 

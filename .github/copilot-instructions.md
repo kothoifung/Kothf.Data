@@ -1,15 +1,18 @@
-# Global Copilot Instructions  
-### Applies to all projects targeting .NET 10+  
-### Engineering Philosophy: Robust • High‑Performance • Production‑Ready
+# Global Copilot Instructions
+### Applies to all projects targeting .NET 10+
 
 ---
 
 ## 🧱 Core Principles
-- All generated code must target **.NET 10+**.
-- Solutions must be **robust**, **high‑performance**, and **production‑ready**.
-- Prefer **modern .NET idioms**, **low‑allocation design**, and **clean architecture**.
-- Avoid outdated APIs, legacy patterns, or unnecessary abstractions.
-- All code must compile **warning‑free** (`TreatWarningsAsErrors=true`).
+- **robust**, **low‑allocation**, **high‑performance**.
+- Prioritize simplicity first during code reviews and changes; favor straightforward, maintainable.
+- Use modern .NET idioms.
+
+---
+
+## 🧩 Architecture Standards
+Copilot should default to **Clean Architecture**:
+Copilot must justify any deviation.
 
 ---
 
@@ -18,17 +21,22 @@ Copilot must always consider performance:
 
 - Prefer **Span<T>**, **Memory<T>**, **ReadOnlySpan<T>**, **ValueTask**.
 - Avoid unnecessary allocations.
-- Prefer **Channel<T>** over `ConcurrentQueue<T>` for pipelines.
 - Prefer **async** over threads; avoid blocking calls.
 
 ---
 
-## 🗄️ Data & EF Core 10
-Copilot must:
+## 🧭 Copilot Workflow Rules
 
-- Use **batching**.
-- Generate **parameterized SQL**.
-- Avoid N+1 queries.
+### 1. File Access Rules
+Copilot may:
+
+- Read any file in the workspace.
+- Write new files only after approval.
+- Modify existing files only after approval.
+
+### 2. Output Preferences
+- Show only modified code blocks (diffs) instead of full-file code dumps unless a full-file output is necessary.
+- Ask for confirmation before providing full-file outputs when unsure.
 
 ---
 
@@ -37,17 +45,13 @@ Copilot must:
 
 - Provide **best‑practice, production‑ready** solutions.
 - Explain trade‑offs.
-- Avoid clever but fragile code.
 - Ask questions when uncertain.
 
 ---
 
 ## 🧹 What Copilot Must Avoid
-- Blocking calls (`.Result`, `.Wait()`).
-- Synchronous IO in async code.
-- Static mutable state.
 - Hidden side effects.
-- Magic numbers or strings.
+- Clever but fragile code.
 - Outdated patterns (e.g., `Task.Run` wrappers).
 - Over‑engineering or unnecessary abstractions.
 

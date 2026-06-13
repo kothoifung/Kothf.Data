@@ -1,7 +1,7 @@
 # Visual Studio cache/options directory
 .vs/
 .git/
-.cursor/
+.github
 
 # Build results
 [Dd]ebug/
